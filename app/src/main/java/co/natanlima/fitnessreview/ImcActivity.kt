@@ -2,6 +2,7 @@ package co.natanlima.fitnessreview
 
 import androidx.appcompat.app.AppCompatActivity
 import android.os.Bundle
+import android.util.Log
 import android.widget.Button
 import android.widget.EditText
 import android.widget.Toast
@@ -24,8 +25,18 @@ class ImcActivity : AppCompatActivity() {
                 Toast.makeText(this, R.string.fields_messages, Toast.LENGTH_SHORT).show()
                 return@setOnClickListener
             }
-            //sucess
+
+            val weight: Int = editWeight.text.toString().toInt()
+            val height: Int = editHeight.text.toString().toInt()
+
+            val imcResult = calculateImc(weight, height)
+            Log.d("Teste", "Resultado: $imcResult")
+
         }
+    }
+
+    private fun calculateImc(weight: Int, height: Int): Double{
+        return weight / ((height / 100.0) * (height / 100.0))
     }
 
     private fun validate(): Boolean {
