@@ -1,6 +1,7 @@
 package co.natanlima.fitnessreview
 
 import android.content.Context
+import android.content.Intent
 import android.os.Bundle
 import android.util.Log
 import android.view.inputmethod.InputMethod
@@ -11,6 +12,7 @@ import android.widget.Toast
 import androidx.annotation.StringRes
 import androidx.appcompat.app.AlertDialog
 import androidx.appcompat.app.AppCompatActivity
+import co.natanlima.fitnessreview.model.Calc
 
 class ImcActivity : AppCompatActivity() {
 
@@ -44,6 +46,22 @@ class ImcActivity : AppCompatActivity() {
                 .setMessage(imcResponseId)
                 .setPositiveButton(android.R.string.ok) { dialog, which ->
                     //aqui vai rodar depois do click
+                }
+                .setNegativeButton(R.string.save) { dialog, which ->
+                    Thread {
+                        val app = application as App
+                        val dao = app.db.calcDao()
+
+                        dao.insert(Calc(type = "imc", res = imcResult))
+
+                        runOnUiThread {
+                            val intent = Intent(this@ImcActivity, ListCalcActivity::class.java)
+                            intent.putExtra("type", "imc")
+                            startActivity(intent)
+                        }
+
+                    }.start()
+
                 }
                 .create()
                 .show()
