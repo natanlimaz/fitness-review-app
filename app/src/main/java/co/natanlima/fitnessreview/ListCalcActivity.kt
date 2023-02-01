@@ -1,11 +1,13 @@
 package co.natanlima.fitnessreview
 
+import android.content.Intent
 import androidx.appcompat.app.AppCompatActivity
 import android.os.Bundle
 import android.util.Log
 import android.view.View
 import android.view.ViewGroup
 import android.widget.TextView
+import androidx.appcompat.app.AlertDialog
 import androidx.recyclerview.widget.LinearLayoutManager
 import androidx.recyclerview.widget.RecyclerView
 import co.natanlima.fitnessreview.model.Calc
@@ -14,7 +16,10 @@ import org.w3c.dom.Text
 import java.text.SimpleDateFormat
 import java.util.Locale
 
-class ListCalcActivity : AppCompatActivity() {
+class ListCalcActivity : AppCompatActivity(), OnListClickListener {
+
+    private lateinit var adapter: ListCalcAdapter
+    private lateinit var listCalc: MutableList<Calc>
 
     private lateinit var recyclerViewListCalc: RecyclerView
 
@@ -22,8 +27,9 @@ class ListCalcActivity : AppCompatActivity() {
         super.onCreate(savedInstanceState)
         setContentView(R.layout.activity_list_calc)
 
-        val listCalc = mutableListOf<Calc>()
-        val adapter = ListCalcAdapter(listCalc)
+        listCalc = mutableListOf<Calc>()
+
+        adapter = ListCalcAdapter(listCalc, this)
         recyclerViewListCalc = findViewById(R.id.rv_list_calc)
         recyclerViewListCalc.layoutManager = LinearLayoutManager(this)
         recyclerViewListCalc.adapter = adapter
@@ -44,7 +50,47 @@ class ListCalcActivity : AppCompatActivity() {
 
     }
 
-    private inner class ListCalcAdapter(private val calcItems: List<Calc>) : RecyclerView.Adapter<ListCalcAdapter.ListCalcViewHolder>() {
+    override fun onClick(id: Int, type: String) {
+        when(type) {
+            "imc" -> {
+                val intent = Intent(this, ImcActivity::class.java)
+                intent.putExtra("updateId", id)
+                startActivity(intent)
+            }
+            "tmb" -> {
+                val intent = Intent(this, TmbActivity::class.java)
+                intent.putExtra("updateId", id)
+                startActivity(intent)
+            }
+        }
+        finish()
+    }
+
+    override fun onLongClick(position: Int, calc: Calc) {
+        AlertDialog.Builder(this)
+            .setMessage(getString(R.string.delete_message))
+            .setNegativeButton(android.R.string.cancel) { dialog, which ->
+            }
+            .setPositiveButton(android.R.string.ok) { dialog, which ->
+                Thread {
+                    val app = application as App
+                    val dao = app.db.calcDao()
+
+                    val response = dao.delete(calc)
+
+                    if(response > 0) {
+                        runOnUiThread {
+                            listCalc.removeAt(position)
+                            adapter.notifyItemRemoved(position)
+                        }
+                    }
+                }.start()
+            }
+            .create()
+            .show()
+    }
+
+    private inner class ListCalcAdapter(private val calcItems: List<Calc>, private val listener: OnListClickListener) : RecyclerView.Adapter<ListCalcAdapter.ListCalcViewHolder>() {
 
         override fun onCreateViewHolder(parent: ViewGroup, viewType: Int): ListCalcViewHolder {
             val view = layoutInflater.inflate(android.R.layout.simple_list_item_1, parent, false)
@@ -61,7 +107,6 @@ class ListCalcActivity : AppCompatActivity() {
         }
 
         private inner class ListCalcViewHolder(itemView: View): RecyclerView.ViewHolder(itemView) {
-
             fun bind(item: Calc) {
                 val tv = itemView as TextView
 
@@ -71,6 +116,15 @@ class ListCalcActivity : AppCompatActivity() {
                 val date = sdf.format(item.createdDate)
 
                 tv.text = getString(R.string.list_response, response, date)
+
+                tv.setOnLongClickListener {
+                    listener.onLongClick(adapterPosition, item)
+                    true
+                }
+
+                tv.setOnClickListener {
+                    listener.onClick(item.id, item.type)
+                }
             }
 
         }
